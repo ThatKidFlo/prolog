@@ -6,6 +6,9 @@ g(b).
 
 h(b).
 
+% Following the way Prolog attempts to match, and therefore
+% prove this rule, by using the 'trace.' predicate should shed
+% some light into the innerworks of the inference machine.
 k(X) :- f(X), g(X), h(X).
 
 house_elf(dobby).
@@ -52,6 +55,31 @@ removeFromList(E, [E | T], T).
 removeFromList(E, [H | T], R) :-
 	R = [H | Rp],
 	removeFromList(E, T, Rp).
+
+a2b([], []).
+a2b([a | Ta], [b | Tb]) :- a2b(Ta, Tb).
+
+%99 problems but a bitch ain't one
+%1
+lastEl(E, [E | []]) :- !.
+lastEl(E, [_ | T]) :- lastEl(E, T).
+
+%2
+lastBeforeLast([], []) :- !.
+lastBeforeLast(E, [E | T]) :- T = [_ | []].
+lastBeforeLast(E, [_ | T]) :- lastBeforeLast(E, T), !.
+
+%3
+kThElement(E, 0, [E | _]).
+kThElement(E, K, [_ | T]) :- kThElement(E, Kp, T), K is Kp + 1, !.
+
+%4
+countElements([], 0).
+countElements([_ | T], R) :- countElements(T, Rp), R is Rp + 1.
+
+%5
+revList([], _).
+revList([H | T], R) :- revList(T, [H | R]).
 
 %russian dolls
 directlyIn(irina, natasha).
@@ -140,8 +168,70 @@ travel(X, Y, Z) :-
 	byPlane(X, T), Z = goByPlane(X, T, Zp), travel(T, Y, Zp).
 
 
+%factorial
 
+% the cut operator does not allow the recursion to go into the
+% dangerous zone of negative values for N (e.g. when getting a
+% result, and asking Prolog to search further, which would
+% inevitably lead to a stack overflow.
+factorial(0, 1) :-
+	!.
+factorial(N, K) :-
+	Np is N - 1,
+	factorial(Np, Kp),
+	K is Kp * N.
 
+a.
+b.
+c.
 
+% The goal predicate will always fail, even though there should
+% be at least one case where it would match (i.e. the second
+% clause for goal, but since the cut operator is present in the
+% first one, it will not allow bypassing this rule, as any
+% goal. evaluation will match the first rule, yielding a false
+% result.
+goal :- a, b, !, 0 > 1.
+goal :- c.
 
+% Again, the cut operator will disallow further matches once
+% the first rule will match. This is sensible, as there can
+% only be one maximum between two numbers, therefore the rules,
+% as the ones presented above, are mutually exclusive (i.e.
+% only one should be true at a given time).
+maximum(X, Y, X) :- X >= Y, !.
+maximum(_, Y, Y).
 
+minimum(X, Y, X) :- X =< Y, !.
+minimum(_, Y, Y).
+
+abs(X, Y) :- X =< 0, Y is -X, !.
+abs(X, X).
+
+fibonacci(0, 0) :- !.
+fibonacci(1, 1) :- !.
+fibonacci(N, F) :-
+	Np is N - 1,
+	fibonacci(Np, Fp),
+	F is Fp + N.
+
+% divisor(A, B, R) means the largest common divisor between
+% A, and B is R.
+divisor(A, 0, A) :- !.
+divisor(A, B, D) :-
+	Ap is B,
+	Bp is A mod B,
+	divisor(Ap, Bp, D).
+
+% This predicate will evaluate an arbitrarily large expression,
+% which may contain the operands +, and -. 
+% e.g.: evaluating(1+2-3, X). -> X = 0.
+evaluating(X, X) :- integer(X), !.
+evaluating(RestExpr+Term, Result) :-
+	integer(Term),
+	evaluating(RestExpr, RestResult),
+	plus(Term, RestResult, Result).
+evaluating(RestExpr-Term, Result) :-
+	integer(Term),
+	evaluating(RestExpr, RestResult),
+	plus(Result, Term, RestResult).
